@@ -67,7 +67,7 @@
 ## Low Priority
 
 ### DevOps/Deployment
-- [ ] Create Docker container setup
+- [x] Create Docker container setup
   - Dockerfile for frontend (multi-stage build)
   - Dockerfile for backend
   - docker-compose.yml to orchestrate both services

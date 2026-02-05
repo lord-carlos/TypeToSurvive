@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - ./backend/data:/app/backend/data
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.rules.typetosurvive.rule=Host(`typetosurvive.local`)"
+      - "traefik.http.services.typetosurvive.loadbalancer.server.port=80"
+      - "traefik.docker.network=traefik-public"
+    networks:
+      - traefik-public
+    restart: unless-stopped
+
+networks:
+  traefik-public:
+    external: true
