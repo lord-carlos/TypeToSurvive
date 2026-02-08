@@ -7,23 +7,25 @@
     ></div>
 
     <!-- Modal Card -->
-    <div class="relative w-full max-w-lg bg-cyberpunk-panelBackground border-2 border-cyberpunk-neonPink rounded-xl shadow-neon-pink overflow-hidden">
+    <div class="relative w-full max-w-lg max-h-[90vh] bg-cyberpunk-panelBackground border-2 border-cyberpunk-neonPink rounded-xl shadow-neon-pink overflow-hidden flex flex-col">
       <!-- Corner Accents -->
       <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyberpunk-neonPink"></div>
       <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyberpunk-neonPink"></div>
       <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyberpunk-neonPink"></div>
       <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyberpunk-neonPink"></div>
 
-      <!-- Header -->
-      <div class="bg-gradient-to-r from-cyberpunk-neonPink/20 to-transparent p-6 border-b border-cyberpunk-neonPink/30">
-        <h1 class="text-4xl md:text-5xl font-bold text-center text-cyberpunk-neonPink tracking-wider animate-pulse-glow">
-          GAME OVER
-        </h1>
-        <p class="text-center text-cyberpunk-dimText mt-2 text-sm">System failure. Core compromised.</p>
-      </div>
+      <!-- Top Content Container -->
+      <div class="flex-0">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-cyberpunk-neonPink/20 to-transparent p-6 border-b border-cyberpunk-neonPink/30">
+          <h1 class="text-4xl md:text-5xl font-bold text-center text-cyberpunk-neonPink tracking-wider animate-pulse-glow">
+            GAME OVER
+          </h1>
+          <p class="text-center text-cyberpunk-dimText mt-2 text-sm">System failure. Core compromised.</p>
+        </div>
 
-      <!-- Stats Grid -->
-      <div class="p-6 grid grid-cols-2 gap-4">
+        <!-- Stats Grid -->
+        <div class="p-6 grid grid-cols-2 gap-4">
         <div class="bg-cyberpunk-darkerBackground rounded-lg p-4 border border-cyberpunk-border hover:border-cyberpunk-neonYellow/50 transition-colors group">
           <p class="text-[10px] text-cyberpunk-dimText uppercase tracking-widest mb-1">Final Score</p>
           <p class="text-3xl md:text-4xl font-bold text-cyberpunk-neonYellow font-mono group-hover:drop-shadow-[0_0_8px_rgba(255,255,0,0.8)] transition-all">
@@ -76,14 +78,15 @@
           </button>
         </div>
       </div>
+      </div>
 
       <!-- Leaderboard Section -->
-      <div v-if="showLeaderboard && leaderboard.length > 0" class="px-6 pb-4">
+      <div v-if="showLeaderboard" class="px-6 pb-4 flex-1 min-h-0 overflow-y-auto scrollbar-cyberpunk">
         <h2 class="text-lg font-bold mb-3 text-cyberpunk-neonBlue flex items-center gap-2">
           <span class="w-2 h-2 bg-cyberpunk-neonBlue rounded-full animate-pulse"></span>
           LEADERBOARD
         </h2>
-        <div class="bg-cyberpunk-darkerBackground rounded-lg overflow-hidden border border-cyberpunk-border">
+        <div v-if="leaderboard.length > 0" class="bg-cyberpunk-darkerBackground rounded-lg overflow-hidden border border-cyberpunk-border">
           <div
             v-for="(entry, index) in leaderboard"
             :key="entry.id"
@@ -98,6 +101,9 @@
             </div>
             <span class="text-cyberpunk-neonYellow font-bold font-mono">{{ entry.score.toLocaleString() }}</span>
           </div>
+        </div>
+        <div v-else class="bg-cyberpunk-darkerBackground rounded-lg p-8 border border-cyberpunk-border text-center">
+          <p class="text-cyberpunk-dimText text-sm">No scores recorded yet. Be the first!</p>
         </div>
       </div>
 
@@ -207,3 +213,25 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.scrollbar-cyberpunk::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-cyberpunk::-webkit-scrollbar-track {
+  background: rgba(30, 30, 40, 0.5);
+  border-radius: 4px;
+}
+
+.scrollbar-cyberpunk::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #ff007f 0%, #b0005e 100%);
+  border-radius: 4px;
+  border: 1px solid #ff007f;
+}
+
+.scrollbar-cyberpunk::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ff3399 0%, #d00075 100%);
+  box-shadow: 0 0 8px rgba(255, 0, 127, 0.5);
+}
+</style>
