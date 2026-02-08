@@ -1,9 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-cyberpunk-darkerBackground relative overflow-hidden">
-    <!-- Animated Background Grid -->
-    <div class="absolute inset-0 opacity-20">
-      <div class="absolute inset-0" style="background-image: linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px); background-size: 60px 60px; animation: scrollGrid 20s linear infinite;"></div>
-    </div>
+    <!-- Hexagon Background -->
+    <HexagonBackground />
 
     <!-- Vignette Effect -->
     <div class="absolute inset-0 bg-radial-gradient pointer-events-none" style="background: radial-gradient(circle at center, transparent 0%, rgba(5,1,17,0.8) 100%);"></div>
@@ -134,6 +132,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import HexagonBackground from './HexagonBackground.vue';
 
 const emit = defineEmits<{
   start: [];
@@ -176,15 +175,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@keyframes scrollGrid {
-  0% {
-    transform: perspective(500px) rotateX(60deg) translateY(0);
-  }
-  100% {
-    transform: perspective(500px) rotateX(60deg) translateY(60px);
-  }
-}
-
 .bg-radial-gradient {
   background: radial-gradient(circle at center, transparent 0%, rgba(5, 1, 17, 0.9) 100%);
 }

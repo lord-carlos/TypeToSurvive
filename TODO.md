@@ -52,7 +52,7 @@
   - Clear screen
 
 ### UX Improvements
-- [ ] Add pause functionality (ESC key)
+- [X] Add pause functionality (ESC key)
   - Pause menu with resume option
   - Stop game loop while paused
 - [ ] Add volume control for sounds
