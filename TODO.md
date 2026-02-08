@@ -16,21 +16,24 @@
   - Play game over sound on game end
 
 ### Gameplay Fixes
-- [ ] Add localStorage for username persistence in GameOver.vue
+- [x] Add localStorage for username persistence in GameOver.vue
   - Save username when score is submitted
   - Load saved username on component mount
-- [ ] Test and fix any remaining typing bugs
-- [ ] Ensure word selection logic works correctly (prioritize closest word?)
+- [x] Test and fix any remaining typing bugs
+- [x] Ensure word selection logic works correctly (prioritize closest word + already typed)
+- [x] Add wrong key visual feedback (red flash on player)
 
 ## Medium Priority
 
 ### Visual Polish
-- [ ] Add screen shake effect when player takes damage
-- [ ] Add more particle variety (colors, sizes, speeds)
-- [ ] Add word spawn animation (fade in, scale up)
-- [ ] Improve word rendering with glow effects
-- [ ] Add background grid or cyberpunk pattern
-- [ ] Add player idle animation (pulsing, rotation)
+- [x] Add level up visual effect (screen flash, text announcement)
+- [x] Add level up sound effect
+- [x] Add screen shake effect when player takes damage
+- [x] Add more particle variety (colors, sizes, speeds)
+- [x] Add word spawn animation (fade in, scale up)
+- [x] Improve word rendering with glow effects
+- [x] Add background grid or cyberpunk pattern
+- [x] Add player idle animation (pulsing, rotation)
 
 ### Game Features
 - [ ] Expand word dictionary (currently 50 words)
@@ -40,7 +43,7 @@
 - [ ] Add more difficulty levels (currently 6)
   - Continue progression beyond level 6
   - Add chaos mode (words spawn from all sides rapidly)
-- [ ] Add visual feedback for correct/incorrect typing
+- [x] Add visual feedback for correct/incorrect typing
   - Red flash on wrong key
   - Green flash on correct word completion
 - [ ] Add power-ups (optional):
@@ -153,6 +156,18 @@
 - [x] Sound effects system (explosion, damage, typing, game over)
 - [x] SoundManager class with pre-loaded audio
 - [x] AGENTS.md documentation
+- [x] Username localStorage persistence
+- [x] Word selection priority (closest + already typed)
+- [x] Wrong key visual feedback (red flash)
+- [x] Debug logging system (dev mode only)
+- [x] Increased spawn rate for first 3 levels (faster early game)
+- [x] Level up visual effect and sound
+- [x] Screen shake on damage
+- [x] Particle variety (randomized sizes and speeds)
+- [x] Word spawn animation (fade in, scale up)
+- [x] Word glow enhancement (distance-based intensity)
+- [x] Background grid pattern
+- [x] Player pulsing animation
 
 ## Future Enhancements
 - [ ] Add power-up system with visual pickups

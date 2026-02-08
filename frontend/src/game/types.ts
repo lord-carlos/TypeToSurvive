@@ -8,6 +8,8 @@ export interface WordEntity {
   speed: number;
   typedChars: number;
   isDestroyed: boolean;
+  spawnAnimationProgress: number;
+  isSpawning: boolean;
 }
 
 export interface Particle {
@@ -18,6 +20,7 @@ export interface Particle {
   life: number;
   maxLife: number;
   color: string;
+  size: number;
 }
 
 export interface DifficultyConfig {

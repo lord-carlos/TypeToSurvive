@@ -17,9 +17,9 @@ export class GameEngine {
 
   // Difficulty progression
   readonly DIFFICULTY_LEVELS: DifficultyConfig[] = [
-    { spawnRate: 2000, speedMultiplier: 1.0, wordDifficulty: 'easy' },
-    { spawnRate: 1800, speedMultiplier: 1.2, wordDifficulty: 'medium' },
-    { spawnRate: 1600, speedMultiplier: 1.4, wordDifficulty: 'medium' },
+    { spawnRate: 1500, speedMultiplier: 1.0, wordDifficulty: 'easy' },
+    { spawnRate: 1300, speedMultiplier: 1.2, wordDifficulty: 'medium' },
+    { spawnRate: 1100, speedMultiplier: 1.4, wordDifficulty: 'medium' },
     { spawnRate: 1400, speedMultiplier: 1.6, wordDifficulty: 'hard' },
     { spawnRate: 1200, speedMultiplier: 1.8, wordDifficulty: 'hard' },
     { spawnRate: 1000, speedMultiplier: 2.0, wordDifficulty: 'expert' },
@@ -64,6 +64,25 @@ export class GameEngine {
   private currentActiveWord: WordEntity | null = null;
   private isPaused = false;
   private scaleFactor = 1;
+  private wrongKeyFlashTimer = 0;
+  readonly WRONG_KEY_FLASH_DURATION = 200;
+  private levelUpAnimationTimer = 0;
+  readonly LEVEL_UP_ANIMATION_DURATION = 2000;
+  private screenShakeTimer = 0;
+  readonly SCREEN_SHAKE_DURATION = 300;
+  private screenShakeIntensity = 0;
+  readonly SCREEN_SHAKE_MAX_INTENSITY = 10;
+  private playerAnimationTime = 0;
+
+  // ===========================================
+  // DEBUG HELPERS
+  // ===========================================
+
+  private debugLog(message: string, data?: any): void {
+    if (import.meta.env.DEV) {
+      console.log(`[GameEngine] ${message}`, data || '');
+    }
+  }
 
   // ===========================================
   // CONSTRUCTOR
@@ -217,6 +236,25 @@ export class GameEngine {
 
     // Update particles
     this.updateParticles(deltaTime);
+
+    // Update wrong key flash timer
+    if (this.wrongKeyFlashTimer > 0) {
+      this.wrongKeyFlashTimer -= deltaTime;
+    }
+
+    // Update level up animation timer
+    if (this.levelUpAnimationTimer > 0) {
+      this.levelUpAnimationTimer -= deltaTime;
+    }
+
+    // Update screen shake timer
+    if (this.screenShakeTimer > 0) {
+      this.screenShakeTimer -= deltaTime;
+      this.screenShakeIntensity *= 0.95;
+    }
+
+    // Update player animation time
+    this.playerAnimationTime += deltaTime / 1000;
   }
 
   private checkLevelUp(deltaTime: number): void {
@@ -226,6 +264,12 @@ export class GameEngine {
       if (this.currentDifficultyIndex < this.DIFFICULTY_LEVELS.length - 1) {
         this.currentDifficultyIndex++;
         this.gameState.difficultyLevel++;
+        const newDifficulty = this.DIFFICULTY_LEVELS[this.currentDifficultyIndex];
+        if (newDifficulty) {
+          this.debugLog('Level up', { level: this.gameState.difficultyLevel, difficulty: newDifficulty.wordDifficulty });
+        }
+        this.levelUpAnimationTimer = this.LEVEL_UP_ANIMATION_DURATION;
+        soundManager.playLevelUpSound();
       }
     }
   }
@@ -259,10 +303,13 @@ export class GameEngine {
       y: position.y,
       speed,
       typedChars: 0,
-      isDestroyed: false
+      isDestroyed: false,
+      spawnAnimationProgress: 0,
+      isSpawning: true
     };
 
     this.words.push(word);
+    this.debugLog('Word spawned', { text, difficulty: currentDifficulty.wordDifficulty, x: position.x, y: position.y });
   }
 
   private getSpawnPosition(): { x: number; y: number } {
@@ -290,6 +337,13 @@ export class GameEngine {
     this.words.forEach(word => {
       if (word.isDestroyed) return;
 
+      if (word.isSpawning) {
+        word.spawnAnimationProgress += deltaTime / 2000;
+        if (word.spawnAnimationProgress >= 1) {
+          word.isSpawning = false;
+        }
+      }
+
       // Calculate direction to center
       const dx = centerX - word.x;
       const dy = centerY - word.y;
@@ -307,7 +361,10 @@ export class GameEngine {
         this.gameState.health -= 10;
         this.createExplosion(word.x, word.y, this.COLORS.neonPink);
         soundManager.playDamageSound();
+        this.screenShakeTimer = this.SCREEN_SHAKE_DURATION;
+        this.screenShakeIntensity = this.SCREEN_SHAKE_MAX_INTENSITY;
         word.isDestroyed = true;
+        this.debugLog('Word reached center', { text: word.text, health: this.gameState.health });
 
         // Reset active word if this was the one being typed
         if (this.currentActiveWord === word) {
@@ -317,6 +374,7 @@ export class GameEngine {
         if (this.gameState.health <= 0) {
           this.gameState.health = 0;
           this.gameState.isGameOver = true;
+          this.debugLog('Game over', { finalScore: this.gameState.score, wordsDestroyed: this.gameState.wordsDestroyed });
         }
       }
     });
@@ -345,9 +403,21 @@ export class GameEngine {
   private render(): void {
     if (!this.ctx || !this.canvas) return;
 
-    // Clear canvas
+    // Apply screen shake
+    let offsetX = 0;
+    let offsetY = 0;
+    if (this.screenShakeIntensity > 0.1) {
+      offsetX = (Math.random() - 0.5) * this.screenShakeIntensity * 2;
+      offsetY = (Math.random() - 0.5) * this.screenShakeIntensity * 2;
+    }
+
+    // Clear canvas with shake offset
+    this.ctx.setTransform(1, 0, 0, 1, offsetX, offsetY);
     this.ctx.fillStyle = '#0D0221';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(-offsetX, -offsetY, this.canvas.width, this.canvas.height);
+
+    // Draw background grid
+    this.drawBackground();
 
     // Draw center point (player)
     this.drawPlayer();
@@ -362,6 +432,12 @@ export class GameEngine {
     if (this.isPaused) {
       this.drawPauseOverlay();
     }
+
+    // Draw level up effect
+    this.drawLevelUpEffect();
+
+    // Reset transform
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   private drawPauseOverlay(): void {
@@ -394,27 +470,112 @@ export class GameEngine {
     if (!this.ctx || !this.canvas) return;
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
-    const radius = 15 * this.scaleFactor;
+    const pulse = Math.sin(this.playerAnimationTime * 3) * 2;
+    const radius = (15 + pulse) * this.scaleFactor;
 
-    // Glow effect
-    this.ctx.shadowBlur = 20 * this.scaleFactor;
-    this.ctx.shadowColor = this.COLORS.neonBlue;
+    // Determine color (red if wrong key flash active)
+    const isFlashing = this.wrongKeyFlashTimer > 0;
+    const playerColor = isFlashing ? this.COLORS.neonPink : this.COLORS.neonBlue;
+    const shadowColor = isFlashing ? this.COLORS.neonPink : this.COLORS.neonBlue;
+
+    // Glow effect (intense if flashing)
+    this.ctx.shadowBlur = isFlashing ? 40 * this.scaleFactor : 20 * this.scaleFactor;
+    this.ctx.shadowColor = shadowColor;
 
     // Draw circle
     this.ctx.beginPath();
     this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    this.ctx.fillStyle = this.COLORS.neonBlue;
+    this.ctx.fillStyle = playerColor;
     this.ctx.fill();
 
+    // Add red glow ring if flashing
+    if (isFlashing) {
+      const flashIntensity = this.wrongKeyFlashTimer / this.WRONG_KEY_FLASH_DURATION;
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, radius * (1 + flashIntensity * 0.5), 0, Math.PI * 2);
+      this.ctx.strokeStyle = `rgba(255, 0, 0, ${flashIntensity})`;
+      this.ctx.lineWidth = 3 * this.scaleFactor;
+      this.ctx.stroke();
+    }
+
     this.ctx.shadowBlur = 0;
+  }
+
+  private drawLevelUpEffect(): void {
+    if (!this.ctx || !this.canvas || this.levelUpAnimationTimer <= 0) return;
+
+    const progress = 1 - (this.levelUpAnimationTimer / this.LEVEL_UP_ANIMATION_DURATION);
+    const alpha = Math.max(0, 1 - progress);
+
+    const centerX = this.canvas.width / 2;
+    const centerY = this.canvas.height / 4;
+
+    const fontSize = 80 * this.scaleFactor;
+    this.ctx.font = `bold ${fontSize}px monospace`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+
+    const levelText = `LEVEL ${this.gameState.difficultyLevel}`;
+
+    this.ctx.shadowBlur = 30 * this.scaleFactor;
+    this.ctx.shadowColor = this.COLORS.neonYellow;
+    this.ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+    this.ctx.fillText(levelText, centerX, centerY);
+
+    this.ctx.shadowBlur = 0;
+  }
+
+  private drawBackground(): void {
+    if (!this.ctx || !this.canvas) return;
+
+    // Draw grid lines
+    this.ctx.strokeStyle = 'rgba(255, 0, 255, 0.1)';
+    this.ctx.lineWidth = 1;
+
+    const gridSize = 50 * this.scaleFactor;
+
+    for (let x = 0; x <= this.canvas.width; x += gridSize) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0);
+      this.ctx.lineTo(x, this.canvas.height);
+      this.ctx.stroke();
+    }
+
+    for (let y = 0; y <= this.canvas.height; y += gridSize) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, y);
+      this.ctx.lineTo(this.canvas.width, y);
+      this.ctx.stroke();
+    }
   }
 
   private drawWord(word: WordEntity): void {
     if (!this.ctx) return;
 
-    this.ctx.font = `${24 * this.scaleFactor}px monospace`;
+    let scale = 1;
+    let alpha = 1;
+
+    if (word.isSpawning) {
+      const t = word.spawnAnimationProgress;
+      const easeOut = 1 - Math.pow(1 - t, 3);
+      scale = 0.5 + (0.5 * easeOut);
+      alpha = easeOut;
+    }
+
+    this.ctx.globalAlpha = alpha;
+    this.ctx.font = `bold ${24 * this.scaleFactor * scale}px monospace`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
+
+    const width = this.canvas?.width || this.CANVAS_WIDTH;
+    const height = this.canvas?.height || this.CANVAS_HEIGHT;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const dx = centerX - word.x;
+    const dy = centerY - word.y;
+    const distanceToCenter = Math.sqrt(dx * dx + dy * dy);
+
+    const glowIntensity = Math.max(5, Math.min(30, 30 - (distanceToCenter / 500) * 25));
 
     // Draw typed portion
     const typedText = word.text.substring(0, word.typedChars);
@@ -426,18 +587,19 @@ export class GameEngine {
     const startX = word.x - totalWidth / 2;
 
     // Typed portion (green)
-    this.ctx.shadowBlur = 10 * this.scaleFactor;
+    this.ctx.shadowBlur = glowIntensity * this.scaleFactor;
     this.ctx.shadowColor = this.COLORS.neonGreen;
     this.ctx.fillStyle = this.COLORS.neonGreen;
     this.ctx.fillText(typedText, startX + typedWidth / 2, word.y);
 
     // Remaining portion (white)
-    this.ctx.shadowBlur = 10 * this.scaleFactor;
+    this.ctx.shadowBlur = glowIntensity * this.scaleFactor;
     this.ctx.shadowColor = this.COLORS.white;
     this.ctx.fillStyle = this.COLORS.white;
     this.ctx.fillText(remainingText, startX + typedWidth + this.ctx.measureText(remainingText).width / 2, word.y);
 
     this.ctx.shadowBlur = 0;
+    this.ctx.globalAlpha = 1;
   }
 
   private drawParticle(particle: Particle): void {
@@ -447,7 +609,7 @@ export class GameEngine {
     this.ctx.globalAlpha = alpha;
     this.ctx.fillStyle = particle.color;
     this.ctx.beginPath();
-    this.ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+    this.ctx.arc(particle.x, particle.y, particle.size * this.scaleFactor, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.globalAlpha = 1;
   }
@@ -456,32 +618,59 @@ export class GameEngine {
   // INPUT HANDLING
   // ===========================================
 
+  private getDistanceToCenter(word: WordEntity): number {
+    const width = this.canvas?.width || this.CANVAS_WIDTH;
+    const height = this.canvas?.height || this.CANVAS_HEIGHT;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const dx = centerX - word.x;
+    const dy = centerY - word.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
   public handleKeyPress(key: string): void {
     if (this.gameState.isGameOver) return;
+
+    this.debugLog('Key pressed', { key, activeWord: this.currentActiveWord?.text });
 
     // If we have an active word, check if the key matches the next character
     if (this.currentActiveWord && !this.currentActiveWord.isDestroyed) {
       const nextChar = this.currentActiveWord.text[this.currentActiveWord.typedChars];
       if (nextChar && nextChar.toLowerCase() === key.toLowerCase()) {
+        // Correct key - continue typing the current active word
         this.currentActiveWord.typedChars++;
         this.checkWordCompletion(this.currentActiveWord);
         soundManager.playTypingSound();
         return;
+      } else {
+        // Wrong key - trigger flash
+        this.wrongKeyFlashTimer = this.WRONG_KEY_FLASH_DURATION;
+        this.debugLog('Wrong key pressed on active word', { key, expected: nextChar });
+        return;
       }
     }
 
-    // No active word or key doesn't match active word, find a new word starting with this key
-    const newActiveWord = this.words.find(word => {
+    // No active word, find all words starting with this key (not already typed)
+    const candidates = this.words.filter(word => {
       if (word.typedChars > 0) return false; // Skip words that are already being typed
       const firstChar = word.text[0];
       return firstChar && firstChar.toLowerCase() === key.toLowerCase();
     });
 
-    if (newActiveWord) {
-      this.currentActiveWord = newActiveWord;
-      newActiveWord.typedChars++;
-      this.checkWordCompletion(newActiveWord);
+    if (candidates.length > 0) {
+      // Sort by distance to center (closest first)
+      candidates.sort((a, b) => this.getDistanceToCenter(a) - this.getDistanceToCenter(b));
+      
+      const selectedWord = candidates[0]!;
+      this.currentActiveWord = selectedWord;
+      this.currentActiveWord.typedChars++;
+      this.checkWordCompletion(this.currentActiveWord);
       soundManager.playTypingSound();
+      this.debugLog('Selected new active word', { word: this.currentActiveWord.text, candidates: candidates.length, distance: this.getDistanceToCenter(this.currentActiveWord) });
+    } else {
+      // No matching word - wrong key
+      this.wrongKeyFlashTimer = this.WRONG_KEY_FLASH_DURATION;
+      this.debugLog('No matching word for key', { key });
     }
   }
 
@@ -493,6 +682,7 @@ export class GameEngine {
       word.isDestroyed = true;
       this.gameState.score += this.SCORE_PER_WORD + (word.text.length * this.SCORE_PER_CHARACTER);
       this.gameState.wordsDestroyed++;
+      this.debugLog('Word completed', { text: word.text, score: this.gameState.score });
 
       // Reset active word if this was the one being typed
       if (this.currentActiveWord === word) {
@@ -504,7 +694,9 @@ export class GameEngine {
   private createExplosion(x: number, y: number, color: string): void {
     for (let i = 0; i < this.PARTICLE_COUNT; i++) {
       const angle = (Math.PI * 2 / this.PARTICLE_COUNT) * i;
-      const speed = Math.random() * 200 + 100;
+      const speedMultiplier = Math.random() * 2 + 0.5;
+      const speed = (Math.random() * 200 + 100) * speedMultiplier;
+      const size = Math.random() * 4 + 1;
 
       this.particles.push({
         x,
@@ -513,7 +705,8 @@ export class GameEngine {
         vy: Math.sin(angle) * speed,
         life: this.PARTICLE_LIFETIME,
         maxLife: this.PARTICLE_LIFETIME,
-        color
+        color,
+        size
       });
     }
   }

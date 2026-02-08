@@ -25,6 +25,7 @@ class SoundManager {
       explosion: '/assets/sounds/DeathFlash.flac',
       damage: '/assets/sounds/error.mp3',
       gameover: '/assets/sounds/gameover.wav',
+      levelup: '/assets/sounds/levelup.mp3',
     };
 
     const loadPromises = Object.entries(soundFiles).map(async ([name, path]) => {
@@ -92,6 +93,10 @@ class SoundManager {
 
   public playGameOverSound(): void {
     this.playSound('gameover', 0.3);
+  }
+
+  public playLevelUpSound(): void {
+    this.playSound('levelup', 0.5);
   }
 }
 
