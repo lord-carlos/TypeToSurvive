@@ -8,8 +8,7 @@ export interface WordEntity {
   speed: number;
   typedChars: number;
   isDestroyed: boolean;
-  spawnAnimationProgress: number;
-  isSpawning: boolean;
+  distanceTraveled: number;
 }
 
 export interface Particle {

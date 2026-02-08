@@ -304,8 +304,7 @@ export class GameEngine {
       speed,
       typedChars: 0,
       isDestroyed: false,
-      spawnAnimationProgress: 0,
-      isSpawning: true
+      distanceTraveled: 0
     };
 
     this.words.push(word);
@@ -337,13 +336,6 @@ export class GameEngine {
     this.words.forEach(word => {
       if (word.isDestroyed) return;
 
-      if (word.isSpawning) {
-        word.spawnAnimationProgress += deltaTime / 2000;
-        if (word.spawnAnimationProgress >= 1) {
-          word.isSpawning = false;
-        }
-      }
-
       // Calculate direction to center
       const dx = centerX - word.x;
       const dy = centerY - word.y;
@@ -354,6 +346,7 @@ export class GameEngine {
         const speedPixelsPerSecond = word.speed * this.scaleFactor * (deltaTime / 1000);
         word.x += (dx / distance) * speedPixelsPerSecond;
         word.y += (dy / distance) * speedPixelsPerSecond;
+        word.distanceTraveled += speedPixelsPerSecond;
       }
 
       // Check if word reached center
@@ -552,15 +545,9 @@ export class GameEngine {
   private drawWord(word: WordEntity): void {
     if (!this.ctx) return;
 
-    let scale = 1;
-    let alpha = 1;
-
-    if (word.isSpawning) {
-      const t = word.spawnAnimationProgress;
-      const easeOut = 1 - Math.pow(1 - t, 3);
-      scale = 0.5 + (0.5 * easeOut);
-      alpha = easeOut;
-    }
+    const progress = Math.min(1, word.distanceTraveled / 220);
+    const scale = 0.7 + (0.3 * progress);
+    const alpha = progress;
 
     this.ctx.globalAlpha = alpha;
     this.ctx.font = `bold ${24 * this.scaleFactor * scale}px monospace`;
