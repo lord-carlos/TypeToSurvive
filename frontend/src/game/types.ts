@@ -9,6 +9,7 @@ export interface WordEntity {
   typedChars: number;
   isDestroyed: boolean;
   distanceTraveled: number;
+  isPowerUp: boolean;
 }
 
 export interface Particle {
@@ -26,4 +27,14 @@ export interface DifficultyConfig {
   spawnRate: number;
   speedMultiplier: number;
   wordDifficulty: WordDifficulty;
+}
+
+export interface Shockwave {
+  x: number;
+  y: number;
+  radius: number;
+  maxRadius: number;
+  life: number;
+  maxLife: number;
+  color: string;
 }

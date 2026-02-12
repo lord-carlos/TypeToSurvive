@@ -1,5 +1,8 @@
 <template>
   <div class="w-full h-full bg-cyberpunk-darkerBackground relative">
+    <!-- Hexagon Background -->
+    <HexagonBackground />
+
     <!-- HUD Header - Absolutely positioned at top -->
     <header class="absolute top-0 left-0 right-0 bg-cyberpunk-panelBackground border-b-2 border-cyberpunk-border shadow-lg z-20">
       <div class="max-w-7xl mx-auto px-4 py-3">
@@ -13,7 +16,7 @@
             <div class="h-3 bg-cyberpunk-darkerBackground rounded-full overflow-hidden border border-cyberpunk-border">
               <div
                 class="h-full transition-all duration-300 ease-out relative"
-                :class="healthBarColor"
+                :class="[healthBarColor, healthBarAnimation]"
                 :style="{ width: `${gameState.health}%` }"
               >
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
@@ -50,11 +53,6 @@
 
     <!-- Game Area - Fills the entire screen with padding for header/footer -->
     <main class="absolute top-[72px] left-0 right-0 bottom-[40px] flex items-center justify-center p-2 md:p-4">
-      <!-- Decorative grid background -->
-      <div class="absolute inset-0 opacity-10 pointer-events-none">
-        <div class="absolute inset-0" style="background-image: linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px); background-size: 50px 50px;"></div>
-      </div>
-
       <!-- Canvas Container -->
       <div 
         ref="canvasContainerRef" 
@@ -103,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { GameEngine } from '../composables/useGameEngine';
+import HexagonBackground from './HexagonBackground.vue';
 import type { GameState } from '../../../shared/types';
 
 const props = defineProps<{
@@ -134,11 +133,31 @@ const gameState = ref<GameState>({
 });
 
 const isPaused = ref(false);
+const healthChangeType = ref<'increase' | 'decrease' | 'none'>('none');
+
+watch(() => gameState.value.health, (newHealth, oldHealth) => {
+  if (newHealth > oldHealth) {
+    healthChangeType.value = 'increase';
+  } else if (newHealth < oldHealth) {
+    healthChangeType.value = 'decrease';
+  }
+  setTimeout(() => {
+    healthChangeType.value = 'none';
+  }, 500);
+});
 
 const healthBarColor = computed(() => {
   if (gameState.value.health > 60) return 'bg-gradient-to-r from-cyberpunk-neonGreen to-green-400';
   if (gameState.value.health > 30) return 'bg-gradient-to-r from-cyberpunk-neonYellow to-yellow-400';
   return 'bg-gradient-to-r from-cyberpunk-neonPink to-red-500';
+});
+
+const healthBarAnimation = computed(() => {
+  switch (healthChangeType.value) {
+    case 'increase': return 'animate-health-gain';
+    case 'decrease': return 'animate-health-loss';
+    default: return '';
+  }
 });
 
 const healthTextColor = computed(() => {
@@ -238,8 +257,52 @@ onUnmounted(() => {
   }
 }
 
+@keyframes health-gain {
+  0%, 100% {
+    filter: brightness(1);
+    transform: translateX(0) scaleX(1);
+  }
+  20%, 80% {
+    transform: translateX(-2px) scaleX(1.05);
+    filter: brightness(1.4) drop-shadow(0 0 12px #00FF00);
+  }
+  40%, 60% {
+    transform: translateX(2px) scaleX(1.05);
+    filter: brightness(1.4) drop-shadow(0 0 12px #00FF00);
+  }
+  50% {
+    filter: brightness(1.5) drop-shadow(0 0 15px #00FF00);
+  }
+}
+
+@keyframes health-loss {
+  0%, 100% {
+    filter: brightness(1);
+    transform: translateX(0) scaleX(1);
+  }
+  15%, 85% {
+    transform: translateX(-3px) scaleX(1.02);
+    filter: brightness(1.3) drop-shadow(0 0 10px #FF00FF);
+  }
+  45%, 75% {
+    transform: translateX(3px) scaleX(1.02);
+    filter: brightness(1.3) drop-shadow(0 0 10px #FF00FF);
+  }
+  50% {
+    filter: brightness(1.2) drop-shadow(0 0 8px #FF00FF);
+  }
+}
+
 .animate-shimmer {
   animation: shimmer 2s infinite;
+}
+
+.animate-health-gain {
+  animation: health-gain 0.5s ease-out;
+}
+
+.animate-health-loss {
+  animation: health-loss 0.5s ease-out;
 }
 
 kbd {

@@ -1,4 +1,4 @@
-import type { WordEntity, Particle, DifficultyConfig } from '../game/types';
+import type { WordEntity, Particle, DifficultyConfig, Shockwave } from '../game/types';
 import type { GameState } from '../../../shared/types';
 import { wordsByDifficulty } from '../data/words';
 import soundManager from '../utils/soundEffects';
@@ -31,6 +31,7 @@ export class GameEngine {
   readonly SCORE_PER_WORD = 100;
   readonly SCORE_PER_CHARACTER = 10;
   readonly TIME_BONUS_MULTIPLIER = 0.5;
+  readonly HEALTH_PER_WORD_DESTROYED = 1;
 
   // Visual settings
   readonly PARTICLE_COUNT = 20;
@@ -46,6 +47,14 @@ export class GameEngine {
     white: '#FFFFFF',
   };
 
+  // Power-up settings
+  readonly POWER_UP_CHANCE = 0.02;
+  readonly POWER_UP_COLOR = '#FFD700';
+  readonly POWER_UP_GLOW_COLOR = '#FFAA00';
+  readonly SHOCKWAVE_DURATION = 800;
+  readonly SHOCKWAVE_SPEED = 400;
+  readonly POWER_UP_BONUS_SCORE = 500;
+
   // ===========================================
   // STATE
   // ===========================================
@@ -54,6 +63,7 @@ export class GameEngine {
   private ctx: CanvasRenderingContext2D | null = null;
   private words: WordEntity[] = [];
   private particles: Particle[] = [];
+  private shockwaves: Shockwave[] = [];
   private gameState: GameState;
   private currentDifficultyIndex = 0;
   private lastTime = 0;
@@ -237,6 +247,9 @@ export class GameEngine {
     // Update particles
     this.updateParticles(deltaTime);
 
+    // Update shockwaves
+    this.updateShockwaves(deltaTime);
+
     // Update wrong key flash timer
     if (this.wrongKeyFlashTimer > 0) {
       this.wrongKeyFlashTimer -= deltaTime;
@@ -304,7 +317,8 @@ export class GameEngine {
       speed,
       typedChars: 0,
       isDestroyed: false,
-      distanceTraveled: 0
+      distanceTraveled: 0,
+      isPowerUp: Math.random() < this.POWER_UP_CHANCE
     };
 
     this.words.push(word);
@@ -420,6 +434,9 @@ export class GameEngine {
 
     // Draw particles
     this.particles.forEach(particle => this.drawParticle(particle));
+
+    // Draw shockwaves
+    this.shockwaves.forEach(shockwave => this.drawShockwave(shockwave));
 
     // Draw pause overlay
     if (this.isPaused) {
@@ -573,16 +590,25 @@ export class GameEngine {
 
     const startX = word.x - totalWidth / 2;
 
-    // Typed portion (green)
+    // Power-up word glow
+    if (word.isPowerUp) {
+      this.ctx.shadowBlur = 15 * this.scaleFactor;
+      this.ctx.shadowColor = this.POWER_UP_GLOW_COLOR;
+    }
+
+    const typedColor = this.COLORS.neonGreen;
+    const remainingColor = word.isPowerUp ? this.POWER_UP_COLOR : this.COLORS.white;
+
+    // Typed portion (always green so user can see progress)
     this.ctx.shadowBlur = glowIntensity * this.scaleFactor;
     this.ctx.shadowColor = this.COLORS.neonGreen;
-    this.ctx.fillStyle = this.COLORS.neonGreen;
+    this.ctx.fillStyle = typedColor;
     this.ctx.fillText(typedText, startX + typedWidth / 2, word.y);
 
-    // Remaining portion (white)
-    this.ctx.shadowBlur = glowIntensity * this.scaleFactor;
-    this.ctx.shadowColor = this.COLORS.white;
-    this.ctx.fillStyle = this.COLORS.white;
+    // Remaining portion (gold for power-up words)
+    this.ctx.shadowBlur = word.isPowerUp ? 15 * this.scaleFactor : glowIntensity * this.scaleFactor;
+    this.ctx.shadowColor = word.isPowerUp ? this.POWER_UP_GLOW_COLOR : this.COLORS.white;
+    this.ctx.fillStyle = remainingColor;
     this.ctx.fillText(remainingText, startX + typedWidth + this.ctx.measureText(remainingText).width / 2, word.y);
 
     this.ctx.shadowBlur = 0;
@@ -663,15 +689,26 @@ export class GameEngine {
 
   private checkWordCompletion(word: WordEntity): void {
     if (word.typedChars >= word.text.length) {
-      // Word completed
-      this.createExplosion(word.x, word.y, this.COLORS.neonGreen);
-      soundManager.playExplosionSound();
+      if (word.isPowerUp) {
+        this.createPowerUpExplosion(word.x, word.y);
+        this.createShockwave(word.x, word.y);
+        this.destroyAllWords();
+        this.gameState.score += this.POWER_UP_BONUS_SCORE;
+        soundManager.playExplosionSound();
+      } else {
+        this.createExplosion(word.x, word.y, this.COLORS.neonGreen);
+        soundManager.playExplosionSound();
+        this.gameState.score += this.SCORE_PER_WORD + (word.text.length * this.SCORE_PER_CHARACTER);
+      }
+      
       word.isDestroyed = true;
-      this.gameState.score += this.SCORE_PER_WORD + (word.text.length * this.SCORE_PER_CHARACTER);
       this.gameState.wordsDestroyed++;
-      this.debugLog('Word completed', { text: word.text, score: this.gameState.score });
+      this.gameState.health = Math.min(
+        this.INITIAL_HEALTH,
+        this.gameState.health + this.HEALTH_PER_WORD_DESTROYED
+      );
+      this.debugLog('Word completed', { text: word.text, score: this.gameState.score, isPowerUp: word.isPowerUp });
 
-      // Reset active word if this was the one being typed
       if (this.currentActiveWord === word) {
         this.currentActiveWord = null;
       }
@@ -696,6 +733,81 @@ export class GameEngine {
         size
       });
     }
+  }
+
+  private createPowerUpExplosion(x: number, y: number): void {
+    const particleCount = this.PARTICLE_COUNT * 3;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 / particleCount) * i;
+      const speedMultiplier = Math.random() * 2 + 0.5;
+      const speed = (Math.random() * 200 + 100) * speedMultiplier;
+      const size = Math.random() * 6 + 2;
+
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: this.PARTICLE_LIFETIME * 1.5,
+        maxLife: this.PARTICLE_LIFETIME * 1.5,
+        color: this.POWER_UP_COLOR,
+        size
+      });
+    }
+  }
+
+  private createShockwave(x: number, y: number): void {
+    const width = this.canvas?.width || this.CANVAS_WIDTH;
+    const height = this.canvas?.height || this.CANVAS_HEIGHT;
+    const maxDimension = Math.max(width, height);
+    const maxRadius = maxDimension * 0.8;
+
+    this.shockwaves.push({
+      x,
+      y,
+      radius: 0,
+      maxRadius,
+      life: this.SHOCKWAVE_DURATION,
+      maxLife: this.SHOCKWAVE_DURATION,
+      color: this.POWER_UP_COLOR
+    });
+  }
+
+  private destroyAllWords(): void {
+    this.words.forEach(word => {
+      if (!word.isDestroyed) {
+        this.createExplosion(word.x, word.y, this.POWER_UP_COLOR);
+        word.isDestroyed = true;
+      }
+    });
+    this.currentActiveWord = null;
+  }
+
+  private updateShockwaves(deltaTime: number): void {
+    this.shockwaves.forEach(shockwave => {
+      shockwave.life -= deltaTime;
+      shockwave.radius += this.SHOCKWAVE_SPEED * (deltaTime / 1000);
+    });
+    this.shockwaves = this.shockwaves.filter(s => s.life > 0);
+  }
+
+  private drawShockwave(shockwave: Shockwave): void {
+    if (!this.ctx) return;
+
+    const alpha = shockwave.life / shockwave.maxLife;
+
+    this.ctx.beginPath();
+    this.ctx.arc(shockwave.x, shockwave.y, shockwave.radius, 0, Math.PI * 2);
+    this.ctx.strokeStyle = this.POWER_UP_COLOR;
+    this.ctx.lineWidth = 3 * this.scaleFactor * alpha;
+    this.ctx.globalAlpha = alpha * 0.6;
+    this.ctx.stroke();
+
+    this.ctx.shadowColor = this.POWER_UP_GLOW_COLOR;
+    this.ctx.shadowBlur = 20 * this.scaleFactor * alpha;
+    this.ctx.stroke();
+    this.ctx.shadowBlur = 0;
+    this.ctx.globalAlpha = 1;
   }
 
   // ===========================================
