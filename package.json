@@ -1,0 +1,12 @@
+{
+  "name": "typetosurvive",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c cyan,magenta \"bun --watch backend/src/server.ts\" \"bun run --cwd frontend dev\"",
+    "dev:backend": "bun --watch backend/src/server.ts",
+    "dev:frontend": "bun run --cwd frontend dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

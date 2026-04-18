@@ -13,8 +13,8 @@ Cyberpunk-themed typing survival game. Players type words before they reach cent
 - **HTML5 Canvas** for game rendering
 
 ### Backend
-- **Node.js** with Express + TypeScript
-- **SQLite** via `better-sqlite3`
+- **Bun** with Express + TypeScript
+- **SQLite** via `bun:sqlite` (built-in)
 - **CommonJS** modules (`type: "commonjs"`)
 
 ## Project Structure
@@ -89,11 +89,14 @@ import GameEngine from '../composables/useGameEngine';
 
 ## Development
 ```bash
-# Backend (Terminal 1)
-cd backend && npm run dev    # :3001
+# Both servers (from project root)
+bun run dev
 
-# Frontend (Terminal 2)
-cd frontend && npm run dev    # :5173
+# Backend only
+cd backend && bun run dev    # :3001
+
+# Frontend only
+cd frontend && bun run dev    # :5173
 ```
 
 ## Important Notes

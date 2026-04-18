@@ -21,17 +21,16 @@ A cyberpunk-themed typing survival game where words fly toward the player from a
 - HTML5 Canvas for game rendering
 
 ### Backend
-- Node.js
+- Bun
 - Express
 - TypeScript
-- SQLite with better-sqlite3
+- SQLite via bun:sqlite
 - RESTful API
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher)
-- npm
+- Bun (v1 or higher)
 
 ### Installation
 
@@ -41,24 +40,26 @@ git clone <repository-url>
 cd TypeToSurvive
 ```
 
-2. Install frontend dependencies:
+2. Install dependencies:
 ```bash
-cd frontend
-npm install
-```
-
-3. Install backend dependencies:
-```bash
-cd ../backend
-npm install
+bun install
+cd frontend && bun install
+cd ../backend && bun install
 ```
 
 ### Running the Application
 
+**Both servers (single command):**
+```bash
+bun run dev
+```
+
+**Or run individually:**
+
 **Backend (Terminal 1):**
 ```bash
 cd backend
-npm run dev
+bun run dev
 ```
 
 The backend will start on `http://localhost:3001`
@@ -66,7 +67,7 @@ The backend will start on `http://localhost:3001`
 **Frontend (Terminal 2):**
 ```bash
 cd frontend
-npm run dev
+bun run dev
 ```
 
 The frontend will start on `http://localhost:5173`

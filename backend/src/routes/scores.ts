@@ -43,7 +43,7 @@ router.get('/leaderboard', (_req, res) => {
              played_at as playedAt
       FROM scores
       ORDER BY score DESC
-      LIMIT 50
+      LIMIT 10
     `);
 
     const scores = stmt.all() as Score[];
