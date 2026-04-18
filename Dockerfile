@@ -1,24 +1,19 @@
-# Stage 1: Backend Builder
-FROM oven/bun:1-alpine AS backend-builder
+FROM oven/bun:1 AS backend-builder
 WORKDIR /app/backend
 COPY backend/package.json backend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY backend/ ./
 RUN bun run build
 
-# Stage 2: Frontend Builder
-FROM oven/bun:1-alpine AS frontend-builder
+FROM oven/bun:1 AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/bun.lock ./
 RUN bun install --frozen-lockfile
 COPY frontend/ ./
 RUN bun run build
 
-# Stage 3: Runtime with Supervisor
-FROM oven/bun:1-alpine
+FROM oven/bun:1-slim
 WORKDIR /app
-
-RUN apk add --no-cache nginx supervisor
 
 COPY --from=backend-builder /app/backend/package.json /app/backend/bun.lock ./backend/
 WORKDIR /app/backend
@@ -29,9 +24,8 @@ COPY --from=backend-builder /app/backend/src/database ./backend/src/database
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-COPY nginx.conf /etc/nginx/http.d/default.conf
-COPY supervisord.conf /etc/supervisord.conf
+RUN mkdir -p /app/backend/data
 
-EXPOSE 80
+EXPOSE 3001
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["bun", "run", "backend/dist/server.js"]
