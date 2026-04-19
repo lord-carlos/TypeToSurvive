@@ -55,7 +55,7 @@
 - [X] Add pause functionality (ESC key)
   - Pause menu with resume option
   - Stop game loop while paused
-- [ ] Add volume control for sounds
+- [X] Add volume control for sounds
   - Mute/unmute option
   - Volume slider in settings
 - [ ] Add keyboard shortcuts:
