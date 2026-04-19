@@ -2,10 +2,21 @@ class SoundManager {
   private audioContext: AudioContext | null = null;
   private sounds: Map<string, AudioBuffer> = new Map();
   private loaded: boolean = false;
+  private _muted: boolean = localStorage.getItem('soundMuted') === 'true';
 
   constructor() {
     this.initAudioContext();
     this.loadSounds();
+  }
+
+  get muted(): boolean {
+    return this._muted;
+  }
+
+  toggleMute(): boolean {
+    this._muted = !this._muted;
+    localStorage.setItem('soundMuted', String(this._muted));
+    return this._muted;
   }
 
   private async initAudioContext(): Promise<void> {
@@ -46,6 +57,7 @@ class SoundManager {
   }
 
   private playSound(name: string, volume: number = 0.5): void {
+    if (this._muted) return;
     if (!this.audioContext || !this.sounds.has(name)) return;
 
     const buffer = this.sounds.get(name);
@@ -64,6 +76,7 @@ class SoundManager {
   }
 
   public playTypingSound(): void {
+    if (this._muted) return;
     if (!this.loaded) return;
     
     if (this.audioContext) {
