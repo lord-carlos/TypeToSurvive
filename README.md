@@ -148,6 +148,14 @@ TypeToSurvive/
 - [ ] Add more difficulty levels
 - [ ] Mobile responsive design
 
+## Docker
+
+```bash
+docker compose up -d
+```
+
+Requires a `.env` file (see `.env.example`) and an external `traefik-public` network.
+
 ## License
 
 MIT

@@ -15,7 +15,7 @@ Cyberpunk-themed typing survival game. Players type words before they reach cent
 ### Backend
 - **Bun** with Express + TypeScript
 - **SQLite** via `bun:sqlite` (built-in)
-- **CommonJS** modules (`type: "commonjs"`)
+- **ESM** modules (`type: "module"`)
 
 ## Project Structure
 ```
