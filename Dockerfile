@@ -22,7 +22,7 @@ WORKDIR /app/backend
 RUN bun install --frozen-lockfile --production
 WORKDIR /app
 COPY --from=backend-builder /app/backend/dist ./backend/dist
-COPY --from=backend-builder /app/backend/src/database ./backend/src/database
+COPY --from=backend-builder /app/backend/src/database/schema.sql ./backend/dist/database/schema.sql
 
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
