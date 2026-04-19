@@ -14,11 +14,11 @@ services:
       - "traefik.http.routers.typetosurvive.tls.domains[0].sans=*.${TRAEFIK_BASEDOMAIN}"
       - "traefik.http.services.typetosurvive.loadbalancer.server.port=3001"
     networks:
-      - traefik-public
+      - traefik-net
 
 volumes:
   typetosurvive-data:
 
 networks:
-  traefik-public:
+  traefik-net:
     external: true
