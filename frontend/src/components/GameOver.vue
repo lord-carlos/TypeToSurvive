@@ -162,7 +162,7 @@ const submitScore = async () => {
   submitting.value = true;
 
   try {
-    const response = await fetch('http://localhost:3001/api/scores', {
+    const response = await fetch('/api/scores', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ const submitScore = async () => {
 
 const fetchLeaderboard = async () => {
   try {
-    const response = await fetch('http://localhost:3001/api/leaderboard');
+    const response = await fetch('/api/leaderboard');
     if (response.ok) {
       leaderboard.value = await response.json();
       showLeaderboard.value = true;
