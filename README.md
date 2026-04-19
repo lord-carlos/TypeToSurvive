@@ -127,7 +127,7 @@ TypeToSurvive/
 │   │   ├── data/         # Word dictionary
 │   │   └── utils/        # Utility functions
 │   └── package.json
-├── backend/           # Express + TypeScript
+├── backend/           # Bun.serve() + TypeScript
 │   ├── src/
 │   │   ├── routes/       # API routes
 │   │   ├── database/     # SQLite database

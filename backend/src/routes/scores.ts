@@ -1,15 +1,13 @@
-import { Router } from 'express';
 import db from '../database/db';
 import type { CreateScoreInput, Score } from '../types/index';
 
-const router = Router();
-
-router.post('/scores', (req, res) => {
+export async function handlePostScore(req: Request): Promise<Response> {
   try {
-    const { playerName, score, wordsDestroyed, timeSurvived, difficultyLevel }: CreateScoreInput = req.body;
+    const body = (await req.json()) as CreateScoreInput;
+    const { playerName, score, wordsDestroyed, timeSurvived, difficultyLevel } = body;
 
     if (!playerName || score === undefined || score === null) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const stmt = db.prepare(`
@@ -28,14 +26,14 @@ router.post('/scores', (req, res) => {
       difficultyLevel,
     };
 
-    res.status(201).json(newScore);
+    return Response.json(newScore, { status: 201 });
   } catch (error) {
     console.error('Error creating score:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
-});
+}
 
-router.get('/leaderboard', (_req, res) => {
+export async function handleGetLeaderboard(_req: Request): Promise<Response> {
   try {
     const stmt = db.prepare(`
       SELECT id, player_name as playerName, score, words_destroyed as wordsDestroyed, 
@@ -47,11 +45,9 @@ router.get('/leaderboard', (_req, res) => {
     `);
 
     const scores = stmt.all() as Score[];
-    res.json(scores);
+    return Response.json(scores);
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
-});
-
-export default router;
+}
